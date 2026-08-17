@@ -8,6 +8,11 @@
 *.so
 *.dylib
 
+# Build output
+/shortener
+cmd/shortener/shortener
+/bin/
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -17,16 +22,17 @@ coverage.*
 *.coverprofile
 profile.cov
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
 # Go workspace file
 go.work
 go.work.sum
 
 # env file
 .env
+!.env.example
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
