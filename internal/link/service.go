@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 )
 
 const maxSlugAttempts = 5
@@ -39,4 +40,18 @@ func (s *Service) Shorten(ctx context.Context, target string) (*Link, error) {
 	}
 
 	return nil, fmt.Errorf("no free slug after %d attempts", maxSlugAttempts)
+}
+
+// Resolve returns the link for slug, or ErrExpired if it is no longer valid.
+func (s *Service) Resolve(ctx context.Context, slug string, now time.Time) (*Link, error) {
+	l, err := s.repo.BySlug(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+
+	if l.ExpiresAt != nil && !now.Before(*l.ExpiresAt) {
+		return nil, ErrExpired
+	}
+
+	return l, nil
 }
