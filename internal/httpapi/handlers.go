@@ -12,11 +12,12 @@ import (
 
 // Handler serves the link HTTP API.
 type Handler struct {
-	svc *link.Service
+	svc     *link.Service
+	version string
 }
 
-func New(svc *link.Service) *Handler {
-	return &Handler{svc: svc}
+func New(svc *link.Service, version string) *Handler {
+	return &Handler{svc: svc, version: version}
 }
 
 // Routes returns the router with all endpoints registered.
@@ -87,5 +88,6 @@ func (h *Handler) redirect(w http.ResponseWriter, r *http.Request) {
 
 // health reports that the server is up.
 func (h *Handler) health(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": h.version})
 }

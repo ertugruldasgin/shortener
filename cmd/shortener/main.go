@@ -13,7 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var version = "dev"
+
 func main() {
+	log.Printf("shortener %s starting", version)
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		log.Fatal("DATABASE_URL is not set")
@@ -32,7 +35,7 @@ func main() {
 	repo := postgres.New(pool)
 	gen := slug.New()
 	svc := link.NewService(repo, gen)
-	h := httpapi.New(svc)
+	h := httpapi.New(svc, version)
 
 	addr := ":8080"
 	log.Printf("listening on %s", addr)

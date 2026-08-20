@@ -11,7 +11,7 @@ import (
 )
 
 func newTestHandler() *Handler {
-	return New(link.NewService(memstore.New(), slug.New()))
+	return New(link.NewService(memstore.New(), slug.New()), "test")
 }
 
 func TestShortenReturnsCreated(t *testing.T) {
