@@ -48,6 +48,11 @@ func (h *Handler) shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	l, err := h.svc.Shorten(r.Context(), req.Target)
+	if errors.Is(err, link.ErrInvalidTarget) {
+		http.Error(w, "invalid target URL", http.StatusBadRequest)
+		return
+	}
+
 	if err != nil {
 		log.Printf("shorten: %v", err)
 		http.Error(w, "could not create link", http.StatusInternalServerError)

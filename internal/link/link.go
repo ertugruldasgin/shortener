@@ -3,6 +3,9 @@ package link
 
 import (
 	"errors"
+	"fmt"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -23,4 +26,27 @@ type Link struct {
 	IsCustom  bool
 	CreatedAt time.Time
 	ExpiresAt *time.Time // nil means never expires
+}
+
+// ValidateTarget checks that raw is usable http(s) URL.
+func ValidateTarget(raw string) error {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return fmt.Errorf("%w: empty", ErrInvalidTarget)
+	}
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidTarget, err)
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("%w: scheme must be http or https", ErrInvalidTarget)
+	}
+
+	if u.Host == "" {
+		return fmt.Errorf("%w: missing host", ErrInvalidTarget)
+	}
+
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -21,6 +22,11 @@ func NewService(repo Repository, gen Generator) *Service {
 
 // Shorten creates a new link for target, retrying on slug collisions.
 func (s *Service) Shorten(ctx context.Context, target string) (*Link, error) {
+	target = strings.TrimSpace(target)
+	if err := ValidateTarget(target); err != nil {
+		return nil, err
+	}
+
 	for range maxSlugAttempts {
 		slug, err := s.gen.Generate()
 		if err != nil {
