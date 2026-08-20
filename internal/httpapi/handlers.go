@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"ertugruldasgin/shortener/internal/link"
+	"log"
 	"net/http"
 	"time"
 )
@@ -23,7 +24,7 @@ func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/links", h.shorten)
 	mux.HandleFunc("GET /healthz", h.health)
-	mux.HandleFunc("GET /slug", h.redirect)
+	mux.HandleFunc("GET /{slug}", h.redirect)
 
 	return mux
 }
@@ -48,6 +49,7 @@ func (h *Handler) shorten(w http.ResponseWriter, r *http.Request) {
 
 	l, err := h.svc.Shorten(r.Context(), req.Target)
 	if err != nil {
+		log.Printf("shorten: %v", err)
 		http.Error(w, "could not create link", http.StatusInternalServerError)
 		return
 	}
