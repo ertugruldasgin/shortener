@@ -48,6 +48,27 @@ func (s *Service) Shorten(ctx context.Context, target string) (*Link, error) {
 	return nil, fmt.Errorf("no free slug after %d attempts", maxSlugAttempts)
 }
 
+// ShortenWithSlug creates a new link using a caller-supplied slug.
+func (s *Service) ShortenWithSlug(ctx context.Context, target string, slug string) (*Link, error) {
+	target = strings.TrimSpace(target)
+	if err := ValidateTarget(target); err != nil {
+		return nil, err
+
+	}
+
+	slug = strings.TrimSpace(slug)
+	if err := ValidateSlug(slug); err != nil {
+		return nil, err
+	}
+
+	l := &Link{Slug: slug, Target: target, IsCustom: true}
+	if err := s.repo.Create(ctx, l); err != nil {
+		return nil, err
+	}
+
+	return l, nil
+}
+
 // Resolve returns the link for slug, or ErrExpired if it is no longer valid.
 func (s *Service) Resolve(ctx context.Context, slug string, now time.Time) (*Link, error) {
 	l, err := s.repo.BySlug(ctx, slug)

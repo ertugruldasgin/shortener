@@ -2,6 +2,7 @@ package link
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -31,6 +32,33 @@ func TestValidateTarget(t *testing.T) {
 		err := ValidateTarget(raw)
 		if !errors.Is(err, ErrInvalidTarget) {
 			t.Errorf("ValidateTarget(%q): got %v, want ErrInvalidTarget", raw, err)
+		}
+	}
+}
+
+func TestValidateSlug(t *testing.T) {
+	valid := []string{"ab", "mylink", "my-link_2", "A1"}
+
+	for _, s := range valid {
+		if err := ValidateSlug(s); err != nil {
+			t.Errorf("ValidateSlug(%q): unexpected error %v", s, err)
+		}
+	}
+
+	invalid := []string{
+		"",                                // too short
+		"a",                               // too short
+		strings.Repeat("a", maxSlugLen+1), // too long
+		"api",                             // reserved
+		"API",                             // reserved, different case
+		"my link",                         // space
+		"my.link",                         // dot
+		"türkçe",                          // non-ascii
+	}
+
+	for _, s := range invalid {
+		if err := ValidateSlug(s); !errors.Is(err, ErrInvalidSlug) {
+			t.Errorf("ValidateSlug(%q): got %v, want ErrInvalidSlug", s, err)
 		}
 	}
 }

@@ -50,3 +50,36 @@ func ValidateTarget(raw string) error {
 
 	return nil
 }
+
+var reservedSlugs = map[string]bool{
+	"api":     true,
+	"healthz": true,
+	"metrics": true,
+	"static":  true,
+}
+
+const (
+	minSlugLen = 2
+	maxSlugLen = 32
+)
+
+const slugAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+// ValidateSlug checks that slug is usable as a custom alias.
+func ValidateSlug(slug string) error {
+	if len(slug) < minSlugLen || len(slug) > maxSlugLen {
+		return fmt.Errorf("%w: length must be between %d-%d", ErrInvalidSlug, minSlugLen, maxSlugLen)
+	}
+
+	if reservedSlugs[strings.ToLower(slug)] {
+		return fmt.Errorf("%w: reserved", ErrInvalidSlug)
+	}
+
+	for _, r := range slug {
+		if !strings.ContainsRune(slugAlphabet, r) {
+			return fmt.Errorf("%w: invalid character %q", ErrInvalidSlug, r)
+		}
+	}
+
+	return nil
+}

@@ -32,6 +32,7 @@ func (h *Handler) Routes() http.Handler {
 
 type shortenRequest struct {
 	Target string `json:"target"`
+	Alias  string `json:"alias,omitempty"`
 }
 
 type shortenResponse struct {
@@ -48,13 +49,28 @@ func (h *Handler) shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	l, err := h.svc.Shorten(r.Context(), req.Target)
-	if errors.Is(err, link.ErrInvalidTarget) {
-		http.Error(w, "invalid target URL", http.StatusBadRequest)
-		return
+	var (
+		l   *link.Link
+		err error
+	)
+
+	if req.Alias != "" {
+		l, err = h.svc.ShortenWithSlug(r.Context(), req.Target, req.Alias)
+	} else {
+		l, err = h.svc.Shorten(r.Context(), req.Target)
 	}
 
-	if err != nil {
+	switch {
+	case errors.Is(err, link.ErrInvalidTarget):
+		http.Error(w, "invalid target URL", http.StatusBadRequest)
+		return
+	case errors.Is(err, link.ErrInvalidSlug):
+		http.Error(w, "invalid alias", http.StatusBadRequest)
+		return
+	case errors.Is(err, link.ErrSlugTaken):
+		http.Error(w, "alias already taken", http.StatusConflict)
+		return
+	case err != nil:
 		log.Printf("shorten: %v", err)
 		http.Error(w, "could not create link", http.StatusInternalServerError)
 		return
