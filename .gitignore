@@ -36,3 +36,6 @@ go.work.sum
 
 # OS
 .DS_Store
+
+# Config file
+postgres-language-server.jsonc
