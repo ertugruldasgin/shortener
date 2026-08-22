@@ -20,6 +20,9 @@ check:
 migrate:
 	$(ENV) goose -dir migrations postgres "$$DATABASE_URL" up
 
+dlint:
+	hadolint Dockerfile
+
 up:
 	docker compose -f deploy/compose.yaml up -d
 
