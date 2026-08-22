@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"errors"
+	"ertugruldasgin/shortener/internal/config"
 	"ertugruldasgin/shortener/internal/httpapi"
 	"ertugruldasgin/shortener/internal/link"
 	"ertugruldasgin/shortener/internal/postgres"
 	"ertugruldasgin/shortener/internal/slug"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -24,15 +24,15 @@ const shutdownTimeout = 10 * time.Second
 func main() {
 	log.Printf("shortener %s starting", version)
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		log.Fatal("DATABASE_URL is not set")
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("loading config: %v", err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	pool, err := pgxpool.New(context.Background(), dsn)
+	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("connecting to database: %v", err)
 	}
@@ -45,11 +45,11 @@ func main() {
 	repo := postgres.New(pool)
 	gen := slug.New()
 	svc := link.NewService(repo, gen)
-	recorder := link.NewClickRecorder(repo)
+	recorder := link.NewClickRecorder(repo, cfg.ClickBufferSize)
 	h := httpapi.New(svc, recorder, version)
 
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    cfg.Addr,
 		Handler: h.Routes(),
 	}
 

@@ -11,9 +11,11 @@ import (
 	"testing"
 )
 
+const clickBufferSize = 256
+
 func newTestHandler() *Handler {
 	store := memstore.New()
-	return New(link.NewService(store, slug.New()), link.NewClickRecorder(store), "test")
+	return New(link.NewService(store, slug.New()), link.NewClickRecorder(store, clickBufferSize), "test")
 }
 
 func TestShortenReturnsCreated(t *testing.T) {

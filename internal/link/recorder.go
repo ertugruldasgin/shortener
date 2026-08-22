@@ -7,10 +7,7 @@ import (
 	"time"
 )
 
-const (
-	clickBufferSize = 256
-	writeTimeout    = 5 * time.Second
-)
+const writeTimeout = 5 * time.Second
 
 // ClickRecorder queues clicks and writes them in the background so the redirect path never waits in the DB. Clicks are dropped when the queue is full.
 type ClickRecorder struct {
@@ -20,10 +17,10 @@ type ClickRecorder struct {
 	dropped int64
 }
 
-func NewClickRecorder(repo Repository) *ClickRecorder {
+func NewClickRecorder(repo Repository, bufferSize int) *ClickRecorder {
 	r := &ClickRecorder{
 		repo:  repo,
-		queue: make(chan Click, clickBufferSize),
+		queue: make(chan Click, bufferSize),
 	}
 
 	r.wg.Add(1)
