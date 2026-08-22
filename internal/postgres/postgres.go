@@ -49,8 +49,8 @@ func (r *Repo) Create(ctx context.Context, l *link.Link) error {
 func (r *Repo) BySlug(ctx context.Context, slug string) (*link.Link, error) {
 	const q = `
 		SELECT id, slug, target, is_custom, created_at, expires_at
-		FRO links
-		WHER slug = $1`
+		FROM links
+		WHERE slug = $1`
 
 	var l link.Link
 

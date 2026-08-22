@@ -35,7 +35,10 @@ func main() {
 	repo := postgres.New(pool)
 	gen := slug.New()
 	svc := link.NewService(repo, gen)
-	h := httpapi.New(svc, version)
+	recorder := link.NewClickRecorder(repo)
+	defer recorder.Close()
+
+	h := httpapi.New(svc, recorder, version)
 
 	addr := ":8080"
 	log.Printf("listening on %s", addr)

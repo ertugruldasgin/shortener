@@ -12,12 +12,13 @@ import (
 
 // Handler serves the link HTTP API.
 type Handler struct {
-	svc     *link.Service
-	version string
+	svc      *link.Service
+	recorder *link.ClickRecorder
+	version  string
 }
 
-func New(svc *link.Service, version string) *Handler {
-	return &Handler{svc: svc, version: version}
+func New(svc *link.Service, recorder *link.ClickRecorder, version string) *Handler {
+	return &Handler{svc: svc, recorder: recorder, version: version}
 }
 
 // Routes returns the router with all endpoints registered.
@@ -99,9 +100,16 @@ func (h *Handler) redirect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "link expired", http.StatusGone)
 		return
 	case err != nil:
+		log.Printf("redirect: %v", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+
+	h.recorder.Record(link.Click{
+		LinkID:    l.ID,
+		Referrer:  r.Referer(),
+		UserAgent: r.UserAgent(),
+	})
 
 	http.Redirect(w, r, l.Target, http.StatusTemporaryRedirect)
 }
