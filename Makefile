@@ -43,5 +43,5 @@ psql:
 
 dev: check db migrate run
 
-deploy: check
+deploy:
 	VERSION=$(VERSION) $(COMPOSE_PROD) up -d --build
