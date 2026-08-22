@@ -49,8 +49,8 @@ func (r *Repo) Create(ctx context.Context, l *link.Link) error {
 func (r *Repo) BySlug(ctx context.Context, slug string) (*link.Link, error) {
 	const q = `
 		SELECT id, slug, target, is_custom, created_at, expires_at
-		FROM links
-		WHERE slug = $1`
+		FRO links
+		WHER slug = $1`
 
 	var l link.Link
 
@@ -66,4 +66,17 @@ func (r *Repo) BySlug(ctx context.Context, slug string) (*link.Link, error) {
 	}
 
 	return &l, nil
+}
+
+func (r *Repo) RecordClick(ctx context.Context, c *link.Click) error {
+	const q = `
+		INSERT INTO clicks (link_id, referrer, user_agent, country)
+		VALUES ($1, $2, $3, $4)`
+
+	_, err := r.pool.Exec(ctx, q, c.LinkID, c.Referrer, c.UserAgent, c.Country)
+	if err != nil {
+		return fmt.Errorf("inserting click %w", err)
+	}
+
+	return nil
 }

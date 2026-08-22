@@ -12,6 +12,7 @@ import (
 type Store struct {
 	mu     sync.RWMutex
 	links  map[string]*link.Link
+	clicks []*link.Click
 	nextID int64
 }
 
@@ -48,4 +49,15 @@ func (s *Store) BySlug(ctx context.Context, slug string) (*link.Link, error) {
 	}
 
 	return l, nil
+}
+
+// RecordClick stores c in mem.
+func (s *Store) RecordClick(ctx context.Context, c *link.Click) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	c.ClickedAt = time.Now()
+	s.clicks = append(s.clicks, c)
+
+	return nil
 }

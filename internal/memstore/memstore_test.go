@@ -52,3 +52,18 @@ func TestBySlugNotFound(t *testing.T) {
 		t.Errorf("got %v, want ErrNotFound", err)
 	}
 }
+
+func TestRecordClick(t *testing.T) {
+	s := New()
+	ctx := context.Background()
+
+	l := &link.Link{Slug: "abc123", Target: "https://example.com"}
+	if err := s.Create(ctx, l); err != nil {
+		t.Fatalf("Create(): %v", err)
+	}
+
+	c := &link.Click{LinkID: l.ID, Referrer: "https://news.example"}
+	if err := s.RecordClick(ctx, c); err != nil {
+		t.Errorf("RecordClick(): %v", err)
+	}
+}

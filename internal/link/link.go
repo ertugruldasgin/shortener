@@ -28,6 +28,16 @@ type Link struct {
 	ExpiresAt *time.Time // nil means never expires
 }
 
+// Click is a single visit to a shortened link.
+type Click struct {
+	ID        int64
+	LinkID    int64
+	ClickedAt time.Time
+	Referrer  string
+	UserAgent string
+	Country   string
+}
+
 // ValidateTarget checks that raw is usable http(s) URL.
 func ValidateTarget(raw string) error {
 	raw = strings.TrimSpace(raw)

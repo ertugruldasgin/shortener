@@ -49,6 +49,10 @@ func (f *fakeRepo) BySlug(ctx context.Context, slug string) (*Link, error) {
 	return l, nil
 }
 
+func (f *fakeRepo) RecordClick(ctx context.Context, c *Click) error {
+	return nil
+}
+
 func TestCreateGeneratesSlug(t *testing.T) {
 	gen := &fakeGen{slugs: []string{"abc123"}}
 	repo := newFakeRepo()
