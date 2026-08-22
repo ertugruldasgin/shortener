@@ -20,11 +20,29 @@ func NewService(repo Repository, gen Generator) *Service {
 	return &Service{repo: repo, gen: gen}
 }
 
-// Shorten creates a new link for target, retrying on slug collisions.
-func (s *Service) Shorten(ctx context.Context, target string) (*Link, error) {
-	target = strings.TrimSpace(target)
+type CreateRequest struct {
+	Target    string
+	Slug      string     // empty means a random slug is generated
+	ExpiresAt *time.Time // nil means link never expires
+}
+
+func (s *Service) Create(ctx context.Context, req CreateRequest) (*Link, error) {
+	target := strings.TrimSpace(req.Target)
 	if err := ValidateTarget(target); err != nil {
 		return nil, err
+	}
+
+	if slug := strings.TrimSpace(req.Slug); slug != "" {
+		if err := ValidateSlug(slug); err != nil {
+			return nil, err
+		}
+
+		l := &Link{Target: target, Slug: slug, IsCustom: true, ExpiresAt: req.ExpiresAt}
+		if err := s.repo.Create(ctx, l); err != nil {
+			return nil, err
+		}
+
+		return l, nil
 	}
 
 	for range maxSlugAttempts {
@@ -33,7 +51,7 @@ func (s *Service) Shorten(ctx context.Context, target string) (*Link, error) {
 			return nil, fmt.Errorf("generating slug: %w", err)
 		}
 
-		l := &Link{Slug: slug, Target: target}
+		l := &Link{Slug: slug, Target: target, ExpiresAt: req.ExpiresAt}
 
 		err = s.repo.Create(ctx, l)
 		if err == nil {
@@ -45,28 +63,7 @@ func (s *Service) Shorten(ctx context.Context, target string) (*Link, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no free slug after %d attempts", maxSlugAttempts)
-}
-
-// ShortenWithSlug creates a new link using a caller-supplied slug.
-func (s *Service) ShortenWithSlug(ctx context.Context, target string, slug string) (*Link, error) {
-	target = strings.TrimSpace(target)
-	if err := ValidateTarget(target); err != nil {
-		return nil, err
-
-	}
-
-	slug = strings.TrimSpace(slug)
-	if err := ValidateSlug(slug); err != nil {
-		return nil, err
-	}
-
-	l := &Link{Slug: slug, Target: target, IsCustom: true}
-	if err := s.repo.Create(ctx, l); err != nil {
-		return nil, err
-	}
-
-	return l, nil
+	return nil, fmt.Errorf("no free slugs after %d attempts", maxSlugAttempts)
 }
 
 // Resolve returns the link for slug, or ErrExpired if it is no longer valid.

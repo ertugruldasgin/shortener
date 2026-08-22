@@ -31,13 +31,15 @@ func (h *Handler) Routes() http.Handler {
 }
 
 type shortenRequest struct {
-	Target string `json:"target"`
-	Alias  string `json:"alias,omitempty"`
+	Target    string `json:"target"`
+	Alias     string `json:"alias,omitempty"`
+	ExpiresIn string `json:"expires_in,omitempty"`
 }
 
 type shortenResponse struct {
-	Slug   string `json:"slug"`
-	Target string `json:"target"`
+	Slug      string     `json:"slug"`
+	Target    string     `json:"target"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 }
 
 // shorten creates a link for the target URL in the request body.
@@ -49,16 +51,18 @@ func (h *Handler) shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var (
-		l   *link.Link
-		err error
-	)
-
-	if req.Alias != "" {
-		l, err = h.svc.ShortenWithSlug(r.Context(), req.Target, req.Alias)
-	} else {
-		l, err = h.svc.Shorten(r.Context(), req.Target)
+	var expiresAt *time.Time
+	if req.ExpiresIn != "" {
+		d, err := time.ParseDuration(req.ExpiresIn)
+		if err != nil || d <= 0 {
+			http.Error(w, "invalid expires_in", http.StatusBadRequest)
+			return
+		}
+		t := time.Now().Add(d)
+		expiresAt = &t
 	}
+
+	l, err := h.svc.Create(r.Context(), link.CreateRequest{Target: req.Target, Slug: req.Alias, ExpiresAt: expiresAt})
 
 	switch {
 	case errors.Is(err, link.ErrInvalidTarget):
@@ -78,7 +82,7 @@ func (h *Handler) shorten(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(shortenResponse{Slug: l.Slug, Target: l.Target})
+	json.NewEncoder(w).Encode(shortenResponse{Slug: l.Slug, Target: l.Target, ExpiresAt: l.ExpiresAt})
 
 }
 
