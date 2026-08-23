@@ -9,17 +9,10 @@ services:
       DATABASE_URL: postgres://shortener:${POSTGRES_PASSWORD}@shortener-db:5432/shortener?sslmode=disable
       ADDR: ":8080"
       BASE_URL: ${BASE_URL:-https://logn.cc}
+    ports:
+      - "${APP_PORT:-127.0.0.1:8080}:8080"
     networks:
       - backend
-      - coolify
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: "coolify"
-      traefik.http.routers.shortener.rule: "Host(`logn.cc`)"
-      traefik.http.routers.shortener.entrypoints: "https"
-      traefik.http.routers.shortener.tls: "true"
-      traefik.http.routers.shortener.tls.certresolver: "letsencrypt"
-      traefik.http.services.shortener.loadbalancer.server.port: "8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,8 +38,6 @@ services:
 
 networks:
   backend:
-  coolify:
-    external: true
 
 volumes:
   postgres_data:
