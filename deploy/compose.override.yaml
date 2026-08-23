@@ -3,12 +3,12 @@ services:
     ports:
       - "5432:5432"
 
-  caddy:
-    profiles:
-      - disabled
-
   app:
     ports:
       - "8080:8080"
     environment:
-      BASEURL: "http://localhost:8080"
+      BASE_URL: "http://localhost:8080"
+
+networks:
+  coolify:
+    external: false
