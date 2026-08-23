@@ -1,8 +1,7 @@
-.PHONY: run build test check migrate dlint up down db logs psql dev deploy
+.PHONY: run build test check dlint up down db logs psql dev deploy
 
 ENV := set -a; . ./.env; set +a;
 VERSION := $(shell git describe --tags --always --dirty)
-
 COMPOSE_PROD := docker compose --env-file .env -f deploy/compose.yaml
 COMPOSE := $(COMPOSE_PROD) -f deploy/compose.override.yaml
 
@@ -20,14 +19,11 @@ check:
 	go vet ./...
 	go test ./...
 
-migrate:
-	$(ENV) goose -dir migrations postgres "$$DATABASE_URL" up
-
 dlint:
 	hadolint Dockerfile
 
 up:
-	VERSION=$(VERSION) $(COMPOSE) up -d
+	VERSION=$(VERSION) $(COMPOSE) up -d --build
 
 down:
 	$(COMPOSE) down
@@ -41,7 +37,7 @@ logs:
 psql:
 	$(COMPOSE) exec postgres psql -U shortener -d shortener
 
-dev: check db migrate run
+dev: check db run
 
 deploy:
 	VERSION=$(VERSION) $(COMPOSE_PROD) up -d --build

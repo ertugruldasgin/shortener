@@ -42,6 +42,10 @@ func main() {
 		log.Fatalf("pinging database: %v", err)
 	}
 
+	if err := postgres.Migrate(cfg.DatabaseURL); err != nil {
+		log.Fatalf("migrating: %v", err)
+	}
+
 	repo := postgres.New(pool)
 	gen := slug.New()
 	svc := link.NewService(repo, gen)
