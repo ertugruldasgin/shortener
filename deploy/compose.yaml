@@ -6,7 +6,7 @@ services:
         VERSION: ${VERSION:-dev}
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://shortener:${POSTGRES_PASSWORD}@postgres:5432/shortener?sslmode=disable
+      DATABASE_URL: postgres://shortener:${POSTGRES_PASSWORD}@shortener-db:5432/shortener?sslmode=disable
       ADDR: ":8080"
       BASE_URL: ${BASE_URL:-https://logn.cc}
     networks:
@@ -34,7 +34,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     networks:
-      - backend
+      backend:
+        aliases:
+          - shortener-db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U shortener"]
       interval: 5s
