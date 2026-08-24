@@ -11,14 +11,37 @@ import (
 	"testing"
 )
 
-const clickBufferSize = 256
+const (
+	clickBufferSize = 256
+	testToken       = "test-token"
+)
 
 func newTestHandler() *Handler {
 	store := memstore.New()
-	return New(link.NewService(store, slug.New()), link.NewClickRecorder(store, clickBufferSize), "test")
+	return New(link.NewService(store, slug.New()), link.NewClickRecorder(store, clickBufferSize), "test", testToken)
+}
+
+// newAuthedPost builds a POST request to /api/links with a valid token.
+func newAuthedPost(body string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/api/links", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+testToken)
+	return req
 }
 
 func TestShortenReturnsCreated(t *testing.T) {
+	h := newTestHandler()
+
+	req := newAuthedPost(`{"target":"https://example.com"}`)
+	rec := httptest.NewRecorder()
+
+	h.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Errorf("got status %d, want %d", rec.Code, http.StatusCreated)
+	}
+}
+
+func TestShortenRequiresToken(t *testing.T) {
 	h := newTestHandler()
 
 	body := strings.NewReader(`{"target":"https://example.com"}`)
@@ -27,8 +50,23 @@ func TestShortenReturnsCreated(t *testing.T) {
 
 	h.Routes().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusCreated {
-		t.Errorf("got status %d, want %d", rec.Code, http.StatusCreated)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("got status %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestShortenRejectsWrongToken(t *testing.T) {
+	h := newTestHandler()
+
+	body := strings.NewReader(`{"target":"https://example.com"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+	req.Header.Set("Authorization", "Bearer wrong-token")
+	rec := httptest.NewRecorder()
+
+	h.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("got status %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -48,8 +86,7 @@ func TestRedirectNotFound(t *testing.T) {
 func TestShortenInvalidJSON(t *testing.T) {
 	h := newTestHandler()
 
-	body := strings.NewReader("not json")
-	req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+	req := newAuthedPost("not json")
 	rec := httptest.NewRecorder()
 
 	h.Routes().ServeHTTP(rec, req)
@@ -62,8 +99,7 @@ func TestShortenInvalidJSON(t *testing.T) {
 func TestShortenWithAlias(t *testing.T) {
 	h := newTestHandler()
 
-	body := strings.NewReader(`{"target":"https://example.com","alias":"mylink"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+	req := newAuthedPost(`{"target":"https://example.com","alias":"mylink"}`)
 	rec := httptest.NewRecorder()
 
 	h.Routes().ServeHTTP(rec, req)
@@ -85,8 +121,7 @@ func TestShortenAliasConflict(t *testing.T) {
 	h := newTestHandler()
 
 	post := func() int {
-		body := strings.NewReader(`{"target":"https://example.com","alias":"taken"}`)
-		req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+		req := newAuthedPost(`{"target":"https://example.com","alias":"taken"}`)
 		rec := httptest.NewRecorder()
 		h.Routes().ServeHTTP(rec, req)
 		return rec.Code
@@ -101,8 +136,7 @@ func TestShortenAliasConflict(t *testing.T) {
 func TestShortenReservedAlias(t *testing.T) {
 	h := newTestHandler()
 
-	body := strings.NewReader(`{"target":"https://example.com","alias":"api"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+	req := newAuthedPost(`{"target":"https://example.com","alias":"api"}`)
 	rec := httptest.NewRecorder()
 
 	h.Routes().ServeHTTP(rec, req)
@@ -115,8 +149,7 @@ func TestShortenReservedAlias(t *testing.T) {
 func TestShortenWithExpiry(t *testing.T) {
 	h := newTestHandler()
 
-	body := strings.NewReader(`{"target":"https://example.com","expires_in":"24h"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+	req := newAuthedPost(`{"target":"https://example.com","expires_in":"24h"}`)
 	rec := httptest.NewRecorder()
 
 	h.Routes().ServeHTTP(rec, req)
@@ -138,8 +171,7 @@ func TestShortenInvalidExpiry(t *testing.T) {
 	for _, v := range []string{"soon", "-1h", "0s"} {
 		h := newTestHandler()
 
-		body := strings.NewReader(`{"target":"https://example.com","expires_in":"` + v + `"}`)
-		req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+		req := newAuthedPost(`{"target":"https://example.com","expires_in":"` + v + `"}`)
 		rec := httptest.NewRecorder()
 
 		h.Routes().ServeHTTP(rec, req)

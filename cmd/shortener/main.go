@@ -50,7 +50,7 @@ func main() {
 	gen := slug.New()
 	svc := link.NewService(repo, gen)
 	recorder := link.NewClickRecorder(repo, cfg.ClickBufferSize)
-	h := httpapi.New(svc, recorder, version)
+	h := httpapi.New(svc, recorder, version, cfg.APIToken)
 
 	srv := &http.Server{
 		Addr:    cfg.Addr,
@@ -67,7 +67,7 @@ func main() {
 	<-ctx.Done()
 	log.Print("shutting down")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {

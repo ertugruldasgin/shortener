@@ -15,16 +15,17 @@ type Handler struct {
 	svc      *link.Service
 	recorder *link.ClickRecorder
 	version  string
+	apiToken string
 }
 
-func New(svc *link.Service, recorder *link.ClickRecorder, version string) *Handler {
-	return &Handler{svc: svc, recorder: recorder, version: version}
+func New(svc *link.Service, recorder *link.ClickRecorder, version string, apiToken string) *Handler {
+	return &Handler{svc: svc, recorder: recorder, version: version, apiToken: apiToken}
 }
 
 // Routes returns the router with all endpoints registered.
 func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/links", h.shorten)
+	mux.HandleFunc("POST /api/links", requireToken(h.apiToken, h.shorten))
 	mux.HandleFunc("GET /healthz", h.health)
 	mux.HandleFunc("GET /{slug}", h.redirect)
 
