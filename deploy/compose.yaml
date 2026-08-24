@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://shortener:${POSTGRES_PASSWORD}@shortener-db:5432/shortener?sslmode=disable
+      API_TOKEN: ${API_TOKEN}
       ADDR: ":8080"
       BASE_URL: ${BASE_URL:-https://logn.cc}
     ports:
