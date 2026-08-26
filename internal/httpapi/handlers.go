@@ -12,14 +12,15 @@ import (
 
 // Handler serves the link HTTP API.
 type Handler struct {
-	svc      *link.Service
-	recorder *link.ClickRecorder
-	version  string
-	apiToken string
+	svc        *link.Service
+	recorder   *link.ClickRecorder
+	version    string
+	apiToken   string
+	adminToken string
 }
 
-func New(svc *link.Service, recorder *link.ClickRecorder, version string, apiToken string) *Handler {
-	return &Handler{svc: svc, recorder: recorder, version: version, apiToken: apiToken}
+func New(svc *link.Service, recorder *link.ClickRecorder, version string, apiToken string, adminToken string) *Handler {
+	return &Handler{svc: svc, recorder: recorder, version: version, apiToken: apiToken, adminToken: adminToken}
 }
 
 // Routes returns the router with all endpoints registered.
@@ -28,6 +29,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /api/links", requireToken(h.apiToken, h.shorten))
 	mux.HandleFunc("GET /healthz", h.health)
 	mux.HandleFunc("GET /{slug}", h.redirect)
+	mux.HandleFunc("DELETE /api/links/{slug}", requireToken(h.adminToken, h.deleteLink))
 
 	return mux
 }
@@ -113,6 +115,24 @@ func (h *Handler) redirect(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, l.Target, http.StatusTemporaryRedirect)
+}
+
+// deleteLink removes the link for the slug in the path.
+func (h *Handler) deleteLink(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+
+	err := h.svc.Delete(r.Context(), slug)
+	switch {
+	case errors.Is(err, link.ErrNotFound):
+		http.NotFound(w, r)
+		return
+	case err != nil:
+		log.Printf("delete %v", err)
+		http.Error(w, "could not delete link", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // health reports that the server is up.

@@ -49,6 +49,15 @@ func (f *fakeRepo) BySlug(ctx context.Context, slug string) (*Link, error) {
 	return l, nil
 }
 
+func (f *fakeRepo) Delete(ctx context.Context, slug string) error {
+	if _, ok := f.stored[slug]; !ok {
+		return ErrNotFound
+	}
+
+	delete(f.stored, slug)
+	return nil
+}
+
 func (f *fakeRepo) RecordClick(ctx context.Context, c *Click) error {
 	return nil
 }

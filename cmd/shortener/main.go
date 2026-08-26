@@ -50,7 +50,7 @@ func main() {
 	gen := slug.New()
 	svc := link.NewService(repo, gen)
 	recorder := link.NewClickRecorder(repo, cfg.ClickBufferSize)
-	h := httpapi.New(svc, recorder, version, cfg.APIToken)
+	h := httpapi.New(svc, recorder, version, cfg.APIToken, cfg.AdminToken)
 
 	srv := &http.Server{
 		Addr:    cfg.Addr,

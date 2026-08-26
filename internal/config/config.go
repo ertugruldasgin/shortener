@@ -16,6 +16,7 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	ClickBufferSize int
 	APIToken        string
+	AdminToken      string
 }
 
 // Load reads the env and returns a validated Config.
@@ -27,6 +28,7 @@ func Load() (*Config, error) {
 		ShutdownTimeout: 10 * time.Second,
 		ClickBufferSize: 256,
 		APIToken:        os.Getenv("API_TOKEN"),
+		AdminToken:      os.Getenv("ADMIN_TOKEN"),
 	}
 
 	if c.DatabaseURL == "" {
@@ -51,6 +53,10 @@ func Load() (*Config, error) {
 
 	if c.APIToken == "" {
 		return nil, fmt.Errorf("API_TOKEN is required.")
+	}
+
+	if c.AdminToken == "" {
+		return nil, fmt.Errorf("ADMIN_TOKEN is required.")
 	}
 
 	return c, nil

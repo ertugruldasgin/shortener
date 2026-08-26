@@ -51,6 +51,20 @@ func (s *Store) BySlug(ctx context.Context, slug string) (*link.Link, error) {
 	return l, nil
 }
 
+// Delete removes the link for slug, returning link.ErrNotFound if it is absent.
+func (s *Store) Delete(ctx context.Context, slug string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.links[slug]; !ok {
+		return link.ErrNotFound
+	}
+
+	delete(s.links, slug)
+
+	return nil
+}
+
 // RecordClick stores c in mem.
 func (s *Store) RecordClick(ctx context.Context, c *link.Click) error {
 	s.mu.Lock()

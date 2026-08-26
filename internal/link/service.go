@@ -66,6 +66,11 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Link, error) 
 	return nil, fmt.Errorf("no free slugs after %d attempts", maxSlugAttempts)
 }
 
+// Delete removes the link for slug.
+func (s *Service) Delete(ctx context.Context, slug string) error {
+	return s.repo.Delete(ctx, strings.TrimSpace(slug))
+}
+
 // Resolve returns the link for slug, or ErrExpired if it is no longer valid.
 func (s *Service) Resolve(ctx context.Context, slug string, now time.Time) (*Link, error) {
 	l, err := s.repo.BySlug(ctx, slug)

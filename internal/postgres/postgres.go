@@ -68,6 +68,22 @@ func (r *Repo) BySlug(ctx context.Context, slug string) (*link.Link, error) {
 	return &l, nil
 }
 
+// Delete removes the link for slug, returning link.ErrNotFound if it is absent.
+func (r *Repo) Delete(ctx context.Context, slug string) error {
+	const q = `DELETE FROM links WHERE slug = $1`
+
+	tag, err := r.pool.Exec(ctx, q, slug)
+	if err != nil {
+		return fmt.Errorf("delete link: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return link.ErrNotFound
+	}
+
+	return nil
+}
+
 func (r *Repo) RecordClick(ctx context.Context, c *link.Click) error {
 	const q = `
 		INSERT INTO clicks (link_id, referrer, user_agent, country)

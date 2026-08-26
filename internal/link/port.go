@@ -6,6 +6,7 @@ import "context"
 type Repository interface {
 	Create(ctx context.Context, l *Link) error
 	BySlug(ctx context.Context, slug string) (*Link, error)
+	Delete(ctx context.Context, slug string) error
 	RecordClick(ctx context.Context, c *Click) error
 }
 
