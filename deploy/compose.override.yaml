@@ -3,6 +3,10 @@ services:
     ports:
       - "5432:5432"
 
+  prometheus:
+    ports:
+      - "9090:9090"
+
   app:
     environment:
       BASE_URL: "http://localhost:8080"
