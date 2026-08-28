@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Handler serves the link HTTP API.
@@ -26,10 +28,11 @@ func New(svc *link.Service, recorder *link.ClickRecorder, version string, apiTok
 // Routes returns the router with all endpoints registered.
 func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/links", requireToken(h.apiToken, h.shorten))
-	mux.HandleFunc("GET /healthz", h.health)
-	mux.HandleFunc("GET /{slug}", h.redirect)
-	mux.HandleFunc("DELETE /api/links/{slug}", requireToken(h.adminToken, h.deleteLink))
+	mux.HandleFunc("POST /api/links", withMetrics("shorten", requireToken(h.apiToken, h.shorten)))
+	mux.HandleFunc("DELETE /api/links/{slug}", withMetrics("delete", requireToken(h.adminToken, h.deleteLink)))
+	mux.HandleFunc("GET /healthz", withMetrics("health", h.health))
+	mux.Handle("GET /metrics", promhttp.Handler())
+	mux.HandleFunc("GET /{slug}", withMetrics("redirect", h.redirect))
 
 	return mux
 }
