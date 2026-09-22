@@ -116,7 +116,7 @@ func (h *Handler) redirect(w http.ResponseWriter, r *http.Request) {
 		Referrer:  r.Referer(),
 		UserAgent: r.UserAgent(),
 	})
-
+	clicksAttempted.Inc()
 	http.Redirect(w, r, l.Target, http.StatusTemporaryRedirect)
 }
 

@@ -12,14 +12,11 @@ import (
 	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var version = "dev"
-
-const shutdownTimeout = 10 * time.Second
 
 func main() {
 	log.Printf("shortener %s starting", version)
@@ -50,6 +47,7 @@ func main() {
 	gen := slug.New()
 	svc := link.NewService(repo, gen)
 	recorder := link.NewClickRecorder(repo, cfg.ClickBufferSize)
+	recorder.OnDrop(httpapi.ClicksDropped())
 	h := httpapi.New(svc, recorder, version, cfg.APIToken, cfg.AdminToken)
 
 	srv := &http.Server{

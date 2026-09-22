@@ -24,7 +24,26 @@ var (
 			Buckets: prometheus.DefBuckets,
 		}, []string{"route"},
 	)
+
+	clicksAttempted = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "shortener_clicks_attempted_total",
+			Help: "Clicks handed to the recorder.",
+		},
+	)
+
+	clicksDropped = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "shortener_clicks_dropped_total",
+			Help: "Clicks discarded because the recorder queue was full.",
+		},
+	)
 )
+
+// ClicksDropped returns a callback that increments the dropped-click counter.
+func ClicksDropped() func() {
+	return clicksDropped.Inc
+}
 
 // statusRecorder captures the status code written by handler.
 type statusRecorder struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -14,7 +15,8 @@ type ClickRecorder struct {
 	repo    Repository
 	queue   chan Click
 	wg      sync.WaitGroup
-	dropped int64
+	dropped atomic.Int64
+	onDrop  func()
 }
 
 func NewClickRecorder(repo Repository, bufferSize int) *ClickRecorder {
@@ -29,12 +31,25 @@ func NewClickRecorder(repo Repository, bufferSize int) *ClickRecorder {
 	return r
 }
 
+// Dropped reports how many clicks were discarded because the queue was full.
+func (r *ClickRecorder) Dropped() int64 {
+	return r.dropped.Load()
+}
+
+// OnDrop registers a callback invoked whenever a click is dropped.
+func (r *ClickRecorder) OnDrop(fn func()) {
+	r.onDrop = fn
+}
+
 // Record queues c. It never blocks: if the queue is full, the click is dropped.
 func (r *ClickRecorder) Record(c Click) {
 	select {
 	case r.queue <- c:
 	default:
-		r.dropped++
+		r.dropped.Add(1)
+		if r.onDrop != nil {
+			r.onDrop()
+		}
 	}
 }
 
