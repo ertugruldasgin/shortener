@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	batchSize    = 100
+	batchSize    = 1000
 	flushEvery   = 200 * time.Millisecond
 	writeTimeout = 5 * time.Second
 )
