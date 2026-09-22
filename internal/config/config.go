@@ -27,7 +27,7 @@ func Load() (*Config, error) {
 		Addr:            envOr("ADDR", ":8080"),
 		BaseURL:         envOr("BASE_URL", "http://localhost:8080"),
 		ShutdownTimeout: 10 * time.Second,
-		ClickBufferSize: 256,
+		ClickBufferSize: 2048,
 		APIToken:        os.Getenv("API_TOKEN"),
 		AdminToken:      os.Getenv("ADMIN_TOKEN"),
 		RedisURL:        os.Getenv("REDIS_URL"),

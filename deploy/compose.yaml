@@ -11,7 +11,7 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN}
       ADDR: ":8080"
       BASE_URL: ${BASE_URL:-https://logn.cc}
-      CLICK_BUFFER_SIZE: ${CLICK_BUFFER_SIZE:-256}
+      CLICK_BUFFER_SIZE: ${CLICK_BUFFER_SIZE:-2048}
       REDIS_URL: redis://redis:6379/0
     ports:
       - "${APP_PORT:-127.0.0.1:8080}:8080"
