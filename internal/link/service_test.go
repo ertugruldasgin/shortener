@@ -62,6 +62,8 @@ func (f *fakeRepo) RecordClick(ctx context.Context, c *Click) error {
 	return nil
 }
 
+func (f *fakeRepo) RecordClicks(ctx context.Context, cs []Click) error { return nil }
+
 func TestCreateGeneratesSlug(t *testing.T) {
 	gen := &fakeGen{slugs: []string{"abc123"}}
 	repo := newFakeRepo()

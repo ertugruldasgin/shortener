@@ -8,7 +8,11 @@ import (
 	"time"
 )
 
-const writeTimeout = 5 * time.Second
+const (
+	batchSize    = 100
+	flushEvery   = 200 * time.Millisecond
+	writeTimeout = 5 * time.Second
+)
 
 // ClickRecorder queues clicks and writes them in the background so the redirect path never waits in the DB. Clicks are dropped when the queue is full.
 type ClickRecorder struct {
@@ -62,11 +66,40 @@ func (r *ClickRecorder) Close() {
 func (r *ClickRecorder) run() {
 	defer r.wg.Done()
 
-	for c := range r.queue {
+	batch := make([]Click, 0, batchSize)
+	ticker := time.NewTicker(flushEvery)
+	defer ticker.Stop()
+
+	flush := func() {
+		if len(batch) == 0 {
+			return
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
-		if err := r.repo.RecordClick(ctx, &c); err != nil {
-			log.Printf("recording click: %v", err)
+		if err := r.repo.RecordClicks(ctx, batch); err != nil {
+			log.Printf("recording clicks: %v", err)
 		}
 		cancel()
+
+		batch = batch[:0]
 	}
+
+	for {
+		select {
+		case c, ok := <-r.queue:
+			if !ok {
+				flush()
+				return
+			}
+
+			batch = append(batch, c)
+			if len(batch) >= batchSize {
+				flush()
+			}
+
+		case <-ticker.C:
+			flush()
+		}
+	}
+
 }

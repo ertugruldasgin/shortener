@@ -96,3 +96,27 @@ func (r *Repo) RecordClick(ctx context.Context, c *link.Click) error {
 
 	return nil
 }
+
+// RecordClicks inserts a batch of clicks in a single round trip.
+func (r *Repo) RecordClicks(ctx context.Context, cs []link.Click) error {
+	if len(cs) == 0 {
+		return nil
+	}
+
+	rows := make([][]any, len(cs))
+	for i, c := range cs {
+		rows[i] = []any{c.LinkID, c.Referrer, c.UserAgent, c.Country}
+	}
+
+	_, err := r.pool.CopyFrom(
+		ctx,
+		pgx.Identifier{"clicks"},
+		[]string{"link_id", "referrer", "user_agent", "country"},
+		pgx.CopyFromRows(rows),
+	)
+	if err != nil {
+		return fmt.Errorf("inserting clicks: %w", err)
+	}
+
+	return nil
+}

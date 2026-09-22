@@ -75,3 +75,18 @@ func (s *Store) RecordClick(ctx context.Context, c *link.Click) error {
 
 	return nil
 }
+
+// RecordClicks stores cs in memory.
+func (s *Store) RecordClicks(ctx context.Context, cs []link.Click) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	for i := range cs {
+		c := cs[i]
+		c.ClickedAt = now
+		s.clicks = append(s.clicks, &c)
+	}
+
+	return nil
+}

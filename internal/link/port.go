@@ -8,6 +8,7 @@ type Repository interface {
 	BySlug(ctx context.Context, slug string) (*Link, error)
 	Delete(ctx context.Context, slug string) error
 	RecordClick(ctx context.Context, c *Click) error
+	RecordClicks(ctx context.Context, cs []Click) error
 }
 
 // Generator produces slugs for new links.
