@@ -12,9 +12,9 @@ datasources:
     uid: postgres
     type: postgres
     url: shortener-db:5432
-    database: shortener
     user: shortener
     secureJsonData:
       password: ${POSTGRES_PASSWORD}
     jsonData:
+      database: shortener
       sslmode: disable

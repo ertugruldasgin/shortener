@@ -1,0 +1,117 @@
+{
+  "title": "Shortener — Links",
+  "uid": "shortener-links",
+  "timezone": "browser",
+  "refresh": "1m",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total links",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS value FROM links;"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Total clicks",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS value FROM clicks;"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Custom aliases",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS value FROM links WHERE is_custom;"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Clicks (last 24h)",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS value FROM clicks WHERE clicked_at > now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Clicks per day",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', clicked_at) AS time, count(*) AS clicks FROM clicks WHERE $__timeFilter(clicked_at) GROUP BY 1 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top links",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT l.slug, l.target, count(c.id) AS clicks FROM links l LEFT JOIN clicks c ON c.link_id = l.id GROUP BY l.id, l.slug, l.target ORDER BY clicks DESC LIMIT 20;"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top referrers",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 13 },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(nullif(referrer, ''), '(direct)') AS referrer, count(*) AS clicks FROM clicks WHERE $__timeFilter(clicked_at) GROUP BY 1 ORDER BY clicks DESC LIMIT 20;"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Recent clicks",
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 13 },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT c.clicked_at, l.slug, coalesce(nullif(c.referrer, ''), '(direct)') AS referrer FROM clicks c JOIN links l ON l.id = c.link_id ORDER BY c.clicked_at DESC LIMIT 50;"
+        }
+      ]
+    }
+  ]
+}
