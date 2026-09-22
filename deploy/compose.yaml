@@ -12,6 +12,7 @@ services:
       ADDR: ":8080"
       BASE_URL: ${BASE_URL:-https://logn.cc}
       CLICK_BUFFER_SIZE: ${CLICK_BUFFER_SIZE:-256}
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "${APP_PORT:-127.0.0.1:8080}:8080"
     networks:
@@ -19,6 +20,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres:
     image: postgres:18-alpine
@@ -67,6 +70,24 @@ services:
       - backend
     depends_on:
       - prometheus
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command:
+      [
+        "redis-server",
+        "--maxmemory",
+        "64mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+      ]
+    networks:
+      - backend
 
 networks:
   backend:

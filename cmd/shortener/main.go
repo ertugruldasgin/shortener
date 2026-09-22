@@ -3,17 +3,19 @@ package main
 import (
 	"context"
 	"errors"
-	"ertugruldasgin/shortener/internal/config"
-	"ertugruldasgin/shortener/internal/httpapi"
-	"ertugruldasgin/shortener/internal/link"
-	"ertugruldasgin/shortener/internal/postgres"
-	"ertugruldasgin/shortener/internal/slug"
 	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"ertugruldasgin/shortener/internal/config"
+	"ertugruldasgin/shortener/internal/httpapi"
+	"ertugruldasgin/shortener/internal/link"
+	"ertugruldasgin/shortener/internal/postgres"
+	"ertugruldasgin/shortener/internal/rediscache"
+	"ertugruldasgin/shortener/internal/slug"
 )
 
 var version = "dev"
@@ -43,9 +45,19 @@ func main() {
 		log.Fatalf("migrating: %v", err)
 	}
 
+	cache, err := rediscache.New(cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("configuring cache: %v", err)
+	}
+	defer cache.Close()
+
+	if err := cache.Ping(context.Background()); err != nil {
+		log.Printf("warning: redis unreachable, serving from database: %v", err)
+	}
+
 	repo := postgres.New(pool)
 	gen := slug.New()
-	svc := link.NewService(repo, gen)
+	svc := link.NewService(repo, gen, cache)
 	recorder := link.NewClickRecorder(repo, cfg.ClickBufferSize)
 	recorder.OnDrop(httpapi.ClicksDropped())
 	h := httpapi.New(svc, recorder, version, cfg.APIToken, cfg.AdminToken)

@@ -17,6 +17,7 @@ type Config struct {
 	ClickBufferSize int
 	APIToken        string
 	AdminToken      string
+	RedisURL        string
 }
 
 // Load reads the env and returns a validated Config.
@@ -29,6 +30,7 @@ func Load() (*Config, error) {
 		ClickBufferSize: 256,
 		APIToken:        os.Getenv("API_TOKEN"),
 		AdminToken:      os.Getenv("ADMIN_TOKEN"),
+		RedisURL:        os.Getenv("REDIS_URL"),
 	}
 
 	if c.DatabaseURL == "" {
@@ -57,6 +59,10 @@ func Load() (*Config, error) {
 
 	if c.AdminToken == "" {
 		return nil, fmt.Errorf("ADMIN_TOKEN is required.")
+	}
+
+	if c.RedisURL == "" {
+		return nil, fmt.Errorf("REDIS_URL is required")
 	}
 
 	return c, nil

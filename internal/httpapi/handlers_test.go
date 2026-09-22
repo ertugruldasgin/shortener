@@ -14,12 +14,12 @@ import (
 const (
 	clickBufferSize = 256
 	testToken       = "test-token"
-	adminToken      = "admin-token"
+	testAdminToken  = "admin-token"
 )
 
 func newTestHandler() *Handler {
 	store := memstore.New()
-	return New(link.NewService(store, slug.New()), link.NewClickRecorder(store, clickBufferSize), "test", testToken, adminToken)
+	return New(link.NewService(store, slug.New(), nil), link.NewClickRecorder(store, clickBufferSize), "test", testToken, testAdminToken)
 }
 
 // newAuthedPost builds a POST request to /api/links with a valid token.

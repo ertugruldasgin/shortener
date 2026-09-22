@@ -9,15 +9,20 @@ import (
 )
 
 const maxSlugAttempts = 5
+const cacheTTL = time.Hour
 
 // Service implements the link use cases.
 type Service struct {
-	repo Repository
-	gen  Generator
+	repo  Repository
+	gen   Generator
+	cache Cache
 }
 
-func NewService(repo Repository, gen Generator) *Service {
-	return &Service{repo: repo, gen: gen}
+func NewService(repo Repository, gen Generator, cache Cache) *Service {
+	if cache == nil {
+		cache = NopCache{}
+	}
+	return &Service{repo: repo, gen: gen, cache: cache}
 }
 
 type CreateRequest struct {
@@ -68,14 +73,28 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Link, error) 
 
 // Delete removes the link for slug.
 func (s *Service) Delete(ctx context.Context, slug string) error {
-	return s.repo.Delete(ctx, strings.TrimSpace(slug))
+	slug = strings.TrimSpace(slug)
+	if err := s.repo.Delete(ctx, slug); err != nil {
+		return err
+	}
+
+	s.cache.Delete(ctx, slug)
+	return nil
 }
 
 // Resolve returns the link for slug, or ErrExpired if it is no longer valid.
 func (s *Service) Resolve(ctx context.Context, slug string, now time.Time) (*Link, error) {
-	l, err := s.repo.BySlug(ctx, slug)
-	if err != nil {
-		return nil, err
+	l, ok := s.cache.Get(ctx, slug)
+	if !ok {
+		var err error
+		l, err = s.repo.BySlug(ctx, slug)
+		if err != nil {
+			return nil, err
+		}
+
+		if ttl := cacheTTLFor(l, now); ttl > 0 {
+			s.cache.Set(ctx, l, ttl)
+		}
 	}
 
 	if l.ExpiresAt != nil && !now.Before(*l.ExpiresAt) {
@@ -83,4 +102,16 @@ func (s *Service) Resolve(ctx context.Context, slug string, now time.Time) (*Lin
 	}
 
 	return l, nil
+}
+
+// cacheTTLFor caps the cache lifetime at the link's own expiry, so the cache
+// never serves a link past its deadline.
+func cacheTTLFor(l *Link, now time.Time) time.Duration {
+	ttl := cacheTTL
+	if l.ExpiresAt != nil {
+		if remaining := l.ExpiresAt.Sub(now); remaining < ttl {
+			ttl = remaining
+		}
+	}
+	return ttl
 }

@@ -67,7 +67,7 @@ func (f *fakeRepo) RecordClicks(ctx context.Context, cs []Click) error { return 
 func TestCreateGeneratesSlug(t *testing.T) {
 	gen := &fakeGen{slugs: []string{"abc123"}}
 	repo := newFakeRepo()
-	svc := NewService(repo, gen)
+	svc := NewService(repo, gen, nil)
 
 	got, err := svc.Create(context.Background(), CreateRequest{Target: "https://example.com"})
 	if err != nil {
@@ -86,7 +86,7 @@ func TestCreateRetriesOnCollision(t *testing.T) {
 	gen := &fakeGen{slugs: []string{"aaa111", "bbb222", "ccc333"}}
 	repo := newFakeRepo()
 	repo.failFirst = 2
-	svc := NewService(repo, gen)
+	svc := NewService(repo, gen, nil)
 
 	got, err := svc.Create(context.Background(), CreateRequest{Target: "https://example.com"})
 	if err != nil {
@@ -105,7 +105,7 @@ func TestCreateGivesUpAfterMaxAttempts(t *testing.T) {
 	gen := &fakeGen{slugs: []string{"a", "b", "c", "d", "e"}}
 	repo := newFakeRepo()
 	repo.failFirst = 99
-	svc := NewService(repo, gen)
+	svc := NewService(repo, gen, nil)
 
 	_, err := svc.Create(context.Background(), CreateRequest{Target: "https://example.com"})
 	if err == nil {
@@ -120,7 +120,7 @@ func TestCreateWithCustomSlugDoesNotRetry(t *testing.T) {
 	gen := &fakeGen{}
 	repo := newFakeRepo()
 	repo.failFirst = 1
-	svc := NewService(repo, gen)
+	svc := NewService(repo, gen, nil)
 
 	_, err := svc.Create(context.Background(), CreateRequest{
 		Target: "https://example.com",
@@ -136,7 +136,7 @@ func TestCreateWithCustomSlugDoesNotRetry(t *testing.T) {
 }
 
 func TestCreateRejectsInvalidTarget(t *testing.T) {
-	svc := NewService(newFakeRepo(), &fakeGen{})
+	svc := NewService(newFakeRepo(), &fakeGen{}, nil)
 
 	_, err := svc.Create(context.Background(), CreateRequest{Target: "merhaba"})
 	if !errors.Is(err, ErrInvalidTarget) {
@@ -147,7 +147,7 @@ func TestCreateRejectsInvalidTarget(t *testing.T) {
 func TestResolveExpired(t *testing.T) {
 	gen := &fakeGen{slugs: []string{"exp123"}}
 	repo := newFakeRepo()
-	svc := NewService(repo, gen)
+	svc := NewService(repo, gen, nil)
 
 	past := time.Now().Add(-time.Hour)
 	_, err := svc.Create(context.Background(), CreateRequest{
@@ -167,7 +167,7 @@ func TestResolveExpired(t *testing.T) {
 func TestResolveNotExpired(t *testing.T) {
 	gen := &fakeGen{slugs: []string{"live12"}}
 	repo := newFakeRepo()
-	svc := NewService(repo, gen)
+	svc := NewService(repo, gen, nil)
 
 	future := time.Now().Add(time.Hour)
 	_, err := svc.Create(context.Background(), CreateRequest{

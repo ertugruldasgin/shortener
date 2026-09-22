@@ -29,7 +29,7 @@ down:
 	$(COMPOSE) down
 
 db:
-	$(COMPOSE) up -d --wait postgres
+	$(COMPOSE) up -d --wait postgres redis
 
 logs:
 	$(COMPOSE) logs -f
