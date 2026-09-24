@@ -38,6 +38,14 @@ var (
 			Help: "Clicks discarded because the recorder queue was full.",
 		},
 	)
+
+	rateLimited = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "shortener_rate_limited_total",
+			Help: "Requests rejected by the rate limiter.",
+		},
+		[]string{"route"},
+	)
 )
 
 // ClicksDropped returns a callback that increments the dropped-click counter.

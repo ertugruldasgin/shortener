@@ -4,35 +4,73 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
-	"ertugruldasgin/shortener/internal/link"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"ertugruldasgin/shortener/internal/link"
 )
 
 // Handler serves the link HTTP API.
 type Handler struct {
 	svc        *link.Service
 	recorder   *link.ClickRecorder
+	limiter    Limiter
+	limits     RateLimits
 	version    string
 	apiToken   string
 	adminToken string
 }
 
-func New(svc *link.Service, recorder *link.ClickRecorder, version string, apiToken string, adminToken string) *Handler {
-	return &Handler{svc: svc, recorder: recorder, version: version, apiToken: apiToken, adminToken: adminToken}
+// RateLimits configures the per-client request budgets.
+type RateLimits struct {
+	Create   int
+	Redirect int
+	Window   time.Duration
+}
+
+// Config holds the handler's dependencies and settings.
+type Config struct {
+	Service    *link.Service
+	Recorder   *link.ClickRecorder
+	Limiter    Limiter
+	RateLimits RateLimits
+	Version    string
+	APIToken   string
+	AdminToken string
+}
+
+func New(cfg Config) *Handler {
+	return &Handler{
+		svc:        cfg.Service,
+		recorder:   cfg.Recorder,
+		limiter:    cfg.Limiter,
+		limits:     cfg.RateLimits,
+		version:    cfg.Version,
+		apiToken:   cfg.APIToken,
+		adminToken: cfg.AdminToken,
+	}
 }
 
 // Routes returns the router with all endpoints registered.
 func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/links", withMetrics("shorten", requireToken(h.apiToken, h.shorten)))
-	mux.HandleFunc("DELETE /api/links/{slug}", withMetrics("delete", requireToken(h.adminToken, h.deleteLink)))
+
+	mux.HandleFunc("POST /api/links", withMetrics("shorten",
+		rateLimit(h.limiter, "shorten", h.limits.Create, h.limits.Window,
+			requireToken(h.apiToken, h.shorten))))
+
+	mux.HandleFunc("DELETE /api/links/{slug}", withMetrics("delete",
+		requireToken(h.adminToken, h.deleteLink)))
+
 	mux.HandleFunc("GET /healthz", withMetrics("health", h.health))
 	mux.Handle("GET /metrics", promhttp.Handler())
-	mux.HandleFunc("GET /{slug}", withMetrics("redirect", h.redirect))
+
+	mux.HandleFunc("GET /{slug}", withMetrics("redirect",
+		rateLimit(h.limiter, "redirect", h.limits.Redirect, h.limits.Window,
+			h.redirect)))
 
 	return mux
 }
@@ -69,7 +107,11 @@ func (h *Handler) shorten(w http.ResponseWriter, r *http.Request) {
 		expiresAt = &t
 	}
 
-	l, err := h.svc.Create(r.Context(), link.CreateRequest{Target: req.Target, Slug: req.Alias, ExpiresAt: expiresAt})
+	l, err := h.svc.Create(r.Context(), link.CreateRequest{
+		Target:    req.Target,
+		Slug:      req.Alias,
+		ExpiresAt: expiresAt,
+	})
 
 	switch {
 	case errors.Is(err, link.ErrInvalidTarget):
@@ -89,8 +131,11 @@ func (h *Handler) shorten(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(shortenResponse{Slug: l.Slug, Target: l.Target, ExpiresAt: l.ExpiresAt})
-
+	json.NewEncoder(w).Encode(shortenResponse{
+		Slug:      l.Slug,
+		Target:    l.Target,
+		ExpiresAt: l.ExpiresAt,
+	})
 }
 
 // redirect sends the client to the target of slug.
@@ -117,6 +162,7 @@ func (h *Handler) redirect(w http.ResponseWriter, r *http.Request) {
 		UserAgent: r.UserAgent(),
 	})
 	clicksAttempted.Inc()
+
 	http.Redirect(w, r, l.Target, http.StatusTemporaryRedirect)
 }
 
@@ -130,7 +176,7 @@ func (h *Handler) deleteLink(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	case err != nil:
-		log.Printf("delete %v", err)
+		log.Printf("delete: %v", err)
 		http.Error(w, "could not delete link", http.StatusInternalServerError)
 		return
 	}

@@ -60,8 +60,19 @@ func main() {
 	svc := link.NewService(repo, gen, cache)
 	recorder := link.NewClickRecorder(repo, cfg.ClickBufferSize)
 	recorder.OnDrop(httpapi.ClicksDropped())
-	h := httpapi.New(svc, recorder, version, cfg.APIToken, cfg.AdminToken)
-
+	h := httpapi.New(httpapi.Config{
+		Service:  svc,
+		Recorder: recorder,
+		Limiter:  cache,
+		RateLimits: httpapi.RateLimits{
+			Create:   cfg.RateLimitCreate,
+			Redirect: cfg.RateLimitRedirect,
+			Window:   cfg.RateLimitWindow,
+		},
+		Version:    version,
+		APIToken:   cfg.APIToken,
+		AdminToken: cfg.AdminToken,
+	})
 	srv := &http.Server{
 		Addr:    cfg.Addr,
 		Handler: h.Routes(),

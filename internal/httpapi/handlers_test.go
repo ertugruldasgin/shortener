@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"ertugruldasgin/shortener/internal/link"
 	"ertugruldasgin/shortener/internal/memstore"
@@ -9,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 const (
@@ -17,9 +19,21 @@ const (
 	testAdminToken  = "admin-token"
 )
 
+type allowAll struct{}
+
+func (allowAll) Allow(context.Context, string, int, time.Duration) bool { return true }
+
 func newTestHandler() *Handler {
 	store := memstore.New()
-	return New(link.NewService(store, slug.New(), nil), link.NewClickRecorder(store, clickBufferSize), "test", testToken, testAdminToken)
+	return New(Config{
+		Service:    link.NewService(store, slug.New(), nil),
+		Recorder:   link.NewClickRecorder(store, clickBufferSize),
+		Limiter:    allowAll{},
+		RateLimits: RateLimits{Create: 1000, Redirect: 1000, Window: time.Minute},
+		Version:    "test",
+		APIToken:   testToken,
+		AdminToken: testAdminToken,
+	})
 }
 
 // newAuthedPost builds a POST request to /api/links with a valid token.
@@ -180,5 +194,32 @@ func TestShortenInvalidExpiry(t *testing.T) {
 		if rec.Code != http.StatusBadRequest {
 			t.Errorf("expires_in %q: got status %d, want %d", v, rec.Code, http.StatusBadRequest)
 		}
+	}
+}
+
+// denyAll rejects every request.
+type denyAll struct{}
+
+func (denyAll) Allow(context.Context, string, int, time.Duration) bool { return false }
+
+func TestRedirectRateLimited(t *testing.T) {
+	store := memstore.New()
+	h := New(Config{
+		Service:    link.NewService(store, slug.New(), nil),
+		Recorder:   link.NewClickRecorder(store, clickBufferSize),
+		Limiter:    denyAll{},
+		RateLimits: RateLimits{Create: 1, Redirect: 1, Window: time.Minute},
+		Version:    "test",
+		APIToken:   testToken,
+		AdminToken: testAdminToken,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/anything", nil)
+	rec := httptest.NewRecorder()
+
+	h.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusTooManyRequests {
+		t.Errorf("got status %d, want %d", rec.Code, http.StatusTooManyRequests)
 	}
 }
