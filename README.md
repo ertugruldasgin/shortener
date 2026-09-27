@@ -1,7 +1,6 @@
 # shortener
 
 [![CI](https://github.com/ertugruldasgin/shortener/actions/workflows/ci.yml/badge.svg)](https://github.com/ertugruldasgin/shortener/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/ertugruldasgin/shortener.svg)](https://pkg.go.dev/github.com/ertugruldasgin/shortener)
 [![License: GPL v2](https://img.shields.io/badge/license-GPLv2-blue.svg)](LICENSE)
 
 A self-hosted URL shortener in Go, with custom aliases, link expiry, and click
@@ -31,8 +30,45 @@ make up
 The stack (app, Postgres, Redis, Prometheus, Grafana) comes up on
 `localhost:8080`, with Grafana on `localhost:3000`.
 
-For local development against a `go run` binary instead of a container:
+To run the app directly instead of in a container:
 
 ```bash
 make dev    # starts Postgres + Redis, runs tests, then the app
 ```
+
+## API
+
+Create a link:
+
+```bash
+curl -X POST localhost:8080/api/links \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d '{"target":"https://example.com"}'
+```
+
+```json
+{ "slug": "exampl", "target": "https://example.com" }
+```
+
+With a custom alias and an expiry (any Go duration):
+
+```bash
+curl -X POST localhost:8080/api/links \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d '{"target":"https://example.com","alias":"docs","expires_in":"24h"}'
+```
+
+Delete a link (admin token, separate from the create token):
+
+```bash
+curl -X DELETE localhost:8080/api/links/docs \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+| Method   | Path                | Auth          | Response                   |
+| -------- | ------------------- | ------------- | -------------------------- |
+| `POST`   | `/api/links`        | `API_TOKEN`   | `201`, `400`, `409`, `429` |
+| `DELETE` | `/api/links/{slug}` | `ADMIN_TOKEN` | `204`, `404`               |
+| `GET`    | `/{slug}`           | —             | `307`, `404`, `410`, `429` |
+| `GET`    | `/healthz`          | —             | `200`                      |
+| `GET`    | `/metrics`          | —             | Prometheus exposition      |
