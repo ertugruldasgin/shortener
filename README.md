@@ -72,3 +72,17 @@ curl -X DELETE localhost:8080/api/links/docs \
 | `GET`    | `/{slug}`           | —             | `307`, `404`, `410`, `429` |
 | `GET`    | `/healthz`          | —             | `200`                      |
 | `GET`    | `/metrics`          | —             | Prometheus exposition      |
+
+## Configuration
+
+| Variable              | Default                 | Purpose                                    |
+| --------------------- | ----------------------- | ------------------------------------------ |
+| `DATABASE_URL`        | —                       | Postgres connection string (required)      |
+| `REDIS_URL`           | —                       | Redis connection string (required)         |
+| `API_TOKEN`           | —                       | Bearer token for creating links (required) |
+| `ADMIN_TOKEN`         | —                       | Bearer token for deleting links (required) |
+| `ADDR`                | `:8080`                 | Listen address                             |
+| `BASE_URL`            | `http://localhost:8080` | Public origin of short links               |
+| `CLICK_BUFFER_SIZE`   | `2048`                  | Click queue depth                          |
+| `RATE_LIMIT_CREATE`   | `60`                    | Creates per client per minute              |
+| `RATE_LIMIT_REDIRECT` | `300`                   | Redirects per client per minute            |
