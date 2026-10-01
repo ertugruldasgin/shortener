@@ -86,3 +86,25 @@ curl -X DELETE localhost:8080/api/links/docs \
 | `CLICK_BUFFER_SIZE`   | `2048`                  | Click queue depth                          |
 | `RATE_LIMIT_CREATE`   | `60`                    | Creates per client per minute              |
 | `RATE_LIMIT_REDIRECT` | `300`                   | Redirects per client per minute            |
+
+## Architecture
+
+`internal/link` is the domain core: entities, validation, use cases, and the
+ports that everything else implements. It imports no transport, storage, or
+cache package — dependencies point inward.
+
+```
+internal/
+├── link/         domain + use cases + ports
+├── postgres/     Repository adapter
+├── rediscache/   Cache and Limiter adapters
+├── memstore/     in-memory Repository, used in tests
+├── slug/         Generator adapter
+├── httpapi/      HTTP handlers, middleware, metrics
+└── config/       environment loading
+```
+
+Clicks never block a redirect. The handler pushes an event onto a bounded
+channel and returns immediately; a background writer drains it and inserts in
+batches via `COPY`. If the queue is full the click is dropped rather than
+delaying the user, and the drop is exported as a Prometheus counter.
