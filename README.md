@@ -108,3 +108,20 @@ Clicks never block a redirect. The handler pushes an event onto a bounded
 channel and returns immediately; a background writer drains it and inserts in
 batches via `COPY`. If the queue is full the click is dropped rather than
 delaying the user, and the drop is exported as a Prometheus counter.
+
+## Benchmarks
+
+`bench/redirect.js`, 50 virtual users for 50s against the local stack.
+
+|                 | RPS    | p50    | p95    | Clicks lost |
+| --------------- | ------ | ------ | ------ | ----------- |
+| Per-row inserts | 10,793 | 3.25ms | 7.52ms | 98.9%       |
+| Batched `COPY`  | 9,262  | 3.67ms | 9.18ms | 0%          |
+| + Redis cache   | 13,585 | 2.49ms | 6.06ms | 0%          |
+
+Single hot key, so cache hit rate is near 100% — an upper bound, not a
+representative traffic mix.
+
+```bash
+k6 run bench/redirect.js
+```
