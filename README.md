@@ -125,3 +125,17 @@ representative traffic mix.
 ```bash
 k6 run bench/redirect.js
 ```
+
+## Development
+
+```bash
+make check    # gofmt, go vet, go test
+make psql     # psql shell into the database
+make logs     # tail all services
+```
+
+CI runs formatting, `go vet`, `go test -race`, and a build on every push.
+
+## License
+
+GPL-2.0 — see [LICENSE](LICENSE).
