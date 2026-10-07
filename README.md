@@ -1,5 +1,6 @@
 # shortener
 
+[![Live](https://img.shields.io/badge/live-logn.cc-brightgreen)](https://logn.cc)
 [![CI](https://github.com/ertugruldasgin/shortener/actions/workflows/ci.yml/badge.svg)](https://github.com/ertugruldasgin/shortener/actions/workflows/ci.yml)
 [![License: GPL v2](https://img.shields.io/badge/license-GPLv2-blue.svg)](LICENSE)
 
